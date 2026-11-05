@@ -1,0 +1,51 @@
+{
+  "webmcp": "0",
+  "tools": [
+    {
+      "name": "list-todos",
+      "description": "List the todo items on this page, with their ids and whether each is done.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "add-todo",
+      "description": "Add a new todo item to the list on this page.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "What needs doing"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "complete-todo",
+      "description": "Mark a todo item as done, by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The id from list-todos"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    }
+  ],
+  "name": "WebMCP demo todo list",
+  "url": "https://webmcp.org/demo/",
+  "description": "A todo list that registers three WebMCP tools."
+}

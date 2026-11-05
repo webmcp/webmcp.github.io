@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebMCP demo: a todo list with tools</title>
+  <meta name="description" content="A live WebMCP demo. A todo list registers three tools through document.modelContext; call them the way an agent would and watch the page change.">
+  <link rel="canonical" href="https://webmcp.org/demo/">
+  <meta property="og:site_name" content="webmcp.org">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://webmcp.org/demo/">
+  <meta property="og:title" content="WebMCP demo: a todo list with tools">
+  <meta property="og:description" content="Three tools on one page. Call them as an agent would and watch the page change.">
+  <meta property="og:image" content="https://webmcp.org/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WebMCP demo: a todo list with tools">
+  <meta name="twitter:description" content="Three tools on one page. Call them as an agent would and watch the page change.">
+  <meta name="twitter:image" content="https://webmcp.org/og.png">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'media', theme: { extend: { colors: {
+      ink: '#1c2b2a', teal: { DEFAULT: '#0f766e', deep: '#134e4a', soft: '#ccfbf1' }, amber: { DEFAULT: '#d97706' }, paper: '#f6f5f0' } } } };
+  </script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    code, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .log-line { border-left: 3px solid transparent; }
+    .log-line[data-kind="register"] { border-color: #0f766e; }
+    .log-line[data-kind="call"] { border-color: #d97706; }
+    .log-line[data-kind="result"] { border-color: #16a34a; }
+    .log-line[data-kind="error"] { border-color: #dc2626; }
+  </style>
+</head>
+<body class="bg-paper text-ink dark:bg-slate-950 dark:text-slate-100 leading-relaxed">
+  <div class="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8">
+
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <a href="/" class="flex items-center gap-3 no-underline">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-teal text-white font-mono font-bold text-xl">{}</span>
+        <span class="text-2xl font-bold tracking-tight">webmcp.org</span>
+      </a>
+      <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm md:text-base font-medium">
+        <a class="hover:text-teal" href="/">Guide</a>
+        <a class="hover:text-teal" href="/webmcp/">Library</a>
+        <a class="hover:text-teal" href="https://github.com/webmcp/webmcp.github.io/tree/gh-pages/demo">Source</a>
+      </nav>
+    </header>
+
+    <section class="mb-6">
+      <h1 class="text-3xl md:text-4xl font-bold mb-2" style="text-wrap: balance">A todo list that tells agents what it can do</h1>
+      <p class="max-w-3xl text-lg">
+        This page registers three tools through <code>document.modelContext</code>. The right-hand panel is what an agent sees.
+        Call a tool there and the list on the left changes, the same way it would if a browser agent did it.
+      </p>
+      <p id="mode" class="mt-3 inline-block rounded-full px-3 py-1 text-sm bg-slate-200 dark:bg-slate-800">Checking for WebMCP…</p>
+    </section>
+
+    <div class="grid lg:grid-cols-2 gap-6 items-start">
+
+      <!-- The app -->
+      <section class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+        <h2 class="text-xl font-bold mb-3">The page</h2>
+        <form id="add-form" class="flex gap-2 mb-4">
+          <input id="add-text" type="text" placeholder="Add a todo by hand" class="flex-1 min-w-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2" autocomplete="off">
+          <button type="submit" class="rounded-lg bg-teal text-white font-semibold px-4 py-2 hover:bg-teal-deep">Add</button>
+        </form>
+        <ul id="todos" class="space-y-2"></ul>
+        <p id="empty" class="text-slate-500 text-sm">Nothing yet. Add one here, or call <code>add-todo</code> from the agent panel.</p>
+      </section>
+
+      <!-- The agent's view -->
+      <section class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+        <h2 class="text-xl font-bold mb-1">What the agent sees</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">From <code>document.modelContext.getTools()</code>. Pick a tool, edit the input, run it with <code>executeTool()</code>.</p>
+        <div id="tools" class="space-y-2 mb-4"></div>
+        <label class="block text-sm font-medium mb-1" for="args">Input (JSON)</label>
+        <textarea id="args" class="mono w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm" rows="3">{}</textarea>
+        <div class="flex items-center gap-3 mt-2">
+          <button id="run" class="rounded-lg bg-amber text-ink font-semibold px-4 py-2 hover:brightness-95">Call tool</button>
+          <span id="selected" class="text-sm text-slate-600 dark:text-slate-400">No tool selected</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Log -->
+    <section class="mt-6 bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xl font-bold">Log</h2>
+        <button id="clear" class="text-sm underline hover:text-teal">clear</button>
+      </div>
+      <ol id="log" class="text-sm space-y-1 max-h-72 overflow-y-auto"></ol>
+    </section>
+
+    <!-- The same list, two other ways -->
+    <section class="mt-6 grid lg:grid-cols-2 gap-6">
+      <details class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+        <summary class="font-bold cursor-pointer">The same tools as an MCP <code>tools/list</code> result</summary>
+        <pre id="mcp" class="mt-3 text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-x-auto"></pre>
+      </details>
+      <details class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+        <summary class="font-bold cursor-pointer">The same tools as a static manifest, <a class="underline" href="/demo/manifest.json">manifest.json</a></summary>
+        <pre id="manifest" class="mt-3 text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-x-auto"></pre>
+      </details>
+    </section>
+
+    <section class="mt-6 text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+      <p class="mb-2"><strong>How this page is built.</strong> The three tools are defined once in <a class="underline hover:text-teal" href="/demo/tools.js">tools.js</a>.
+        The <a class="underline hover:text-teal" href="/webmcp/">webmcp</a> library registers them, lists them, and renders the two other views.
+        If the browser has no native <code>document.modelContext</code>, the official <a class="underline hover:text-teal" href="https://github.com/webmachinelearning/webmcp-polyfill">@w3c/webmcp-polyfill</a> is loaded first.</p>
+      <p>To try the native API, Chrome 149 or later with <code>chrome://flags/#enable-webmcp-testing</code> turned on, or an origin-trial token. The badge at the top says which one you are using.</p>
+    </section>
+
+    <footer class="border-t border-slate-200/60 dark:border-slate-800 pt-6 mt-10 text-sm text-slate-600 dark:text-slate-400">
+      <p>Part of <a class="underline hover:text-teal" href="/">webmcp.org</a>, an unofficial guide to WebMCP. AGPL-3.0, copyright Melvin Carvalho.</p>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { register, discover, toMcp, toManifest } from '/webmcp/index.js';
+    import { makeTools } from './tools.js';
+
+    const $ = (id) => document.getElementById(id);
+    const log = (kind, text) => {
+      const li = document.createElement('li');
+      li.className = 'log-line pl-2';
+      li.dataset.kind = kind;
+      li.textContent = `${new Date().toLocaleTimeString()}  ${text}`;
+      $('log').prepend(li);
+    };
+
+    // --- the app ---------------------------------------------------------
+    const todos = [];
+    let nextId = 1;
+    const store = {
+      list: () => todos.map(({ id, text, done }) => ({ id, text, done })),
+      add(text) { if (!text) return null; const item = { id: nextId++, text, done: false }; todos.push(item); render(); return item; },
+      complete(id) { const item = todos.find((t) => t.id === id); if (!item) return null; item.done = true; render(); return item; },
+    };
+    function render() {
+      const ul = $('todos'); ul.textContent = '';
+      for (const t of todos) {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-3 rounded-lg border border-slate-200/60 dark:border-slate-800 px-3 py-2';
+        const box = document.createElement('input'); box.type = 'checkbox'; box.checked = t.done; box.disabled = t.done;
+        box.addEventListener('change', () => { store.complete(t.id); log('call', `page: completed ${t.id} by hand`); });
+        const span = document.createElement('span'); span.textContent = `#${t.id} ${t.text}`; span.className = t.done ? 'line-through text-slate-500 flex-1' : 'flex-1';
+        li.append(box, span); ul.append(li);
+      }
+      $('empty').hidden = todos.length > 0;
+      document.title = `WebMCP demo: ${todos.length} todo${todos.length === 1 ? '' : 's'}`;
+    }
+    $('add-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = $('add-text').value.trim();
+      if (store.add(text)) { log('call', `page: added "${text}" by hand`); $('add-text').value = ''; }
+    });
+    render();
+
+    // --- WebMCP ----------------------------------------------------------
+    const tools = makeTools(store);
+    $('mcp').textContent = JSON.stringify(toMcp(tools), null, 2);
+    $('manifest').textContent = JSON.stringify(toManifest(tools, { name: 'WebMCP demo todo list', url: 'https://webmcp.org/demo/' }), null, 2);
+
+    async function ensureContext() {
+      if (document.modelContext) return 'native';
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@w3c/webmcp-polyfill@0.1.0/dist/polyfill.js';
+        s.onload = resolve; s.onerror = () => reject(new Error('polyfill failed to load'));
+        document.head.append(s);
+      });
+      if (!document.modelContext) throw new Error('document.modelContext is still missing; the polyfill needs a secure context (https or localhost)');
+      return 'polyfill';
+    }
+
+    let selected = null;
+    const samples = { 'list-todos': {}, 'add-todo': { text: 'Buy oat milk' }, 'complete-todo': { id: 1 } };
+
+    async function refreshTools() {
+      const list = await discover();
+      const box = $('tools'); box.textContent = '';
+      for (const t of list) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'block w-full text-left rounded-lg border px-3 py-2 hover:border-teal ' + (selected === t.name ? 'border-teal bg-teal-soft/50 dark:bg-teal-deep/30' : 'border-slate-200/60 dark:border-slate-800');
+        b.innerHTML = `<code class="font-semibold">${t.name}</code><span class="block text-sm text-slate-600 dark:text-slate-400"></span>`;
+        b.querySelector('span').textContent = t.description;
+        b.addEventListener('click', () => { selected = t.name; $('args').value = JSON.stringify(samples[t.name] ?? {}, null, 0); $('selected').textContent = `Selected: ${t.name}`; refreshTools(); });
+        box.append(b);
+      }
+      document.documentElement.dataset.tools = String(list.length);
+    }
+
+    try {
+      const mode = await ensureContext();
+      const ctx = document.modelContext;
+      $('mode').textContent = mode === 'native' ? 'Native document.modelContext in this browser' : 'Using the official polyfill (no native WebMCP here)';
+      $('mode').className = 'mt-3 inline-block rounded-full px-3 py-1 text-sm ' + (mode === 'native' ? 'bg-green-100 text-green-900' : 'bg-amber/20 text-ink dark:text-amber');
+      const reg = await register(tools, { context: ctx });
+      for (const t of reg.tools) log('register', `registerTool("${t.name}")`);
+      ctx.addEventListener?.('toolchange', refreshTools);
+      await refreshTools();
+
+      $('run').addEventListener('click', async () => {
+        if (!selected) { log('error', 'pick a tool first'); return; }
+        let input;
+        try { input = JSON.parse($('args').value || '{}'); } catch (e) { log('error', `input is not JSON: ${e.message}`); return; }
+        const registered = (await ctx.getTools()).find((t) => t.name === selected);
+        if (!registered) { log('error', `${selected} is no longer registered`); return; }
+        log('call', `executeTool("${selected}", ${JSON.stringify(input)})`);
+        try {
+          const out = await ctx.executeTool(registered, input);
+          log('result', typeof out === 'string' ? out : JSON.stringify(out));
+        } catch (e) { log('error', e && e.message ? e.message : String(e)); }
+      });
+    } catch (e) {
+      $('mode').textContent = `WebMCP unavailable: ${e.message}`;
+      $('mode').className = 'mt-3 inline-block rounded-full px-3 py-1 text-sm bg-red-100 text-red-900';
+      log('error', e.message);
+    }
+    $('clear').addEventListener('click', () => { $('log').textContent = ''; });
+  </script>
+</body>
+</html>
