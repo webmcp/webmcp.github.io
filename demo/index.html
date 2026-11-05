@@ -178,6 +178,15 @@
       return 'polyfill';
     }
 
+    // executeTool() resolves with a string; when it is a JSON content array, show the text blocks.
+    function pretty(out) {
+      try {
+        const v = typeof out === 'string' ? JSON.parse(out) : out;
+        if (v && Array.isArray(v.content)) return v.content.map((c) => c.type === 'text' ? c.text : JSON.stringify(c)).join(' ');
+        return typeof v === 'string' ? v : JSON.stringify(v);
+      } catch { return String(out); }
+    }
+
     let selected = null;
     const samples = { 'list-todos': {}, 'add-todo': { text: 'Buy oat milk' }, 'complete-todo': { id: 1 } };
 
@@ -215,7 +224,7 @@
         log('call', `executeTool("${selected}", ${JSON.stringify(input)})`);
         try {
           const out = await ctx.executeTool(registered, input);
-          log('result', typeof out === 'string' ? out : JSON.stringify(out));
+          log('result', pretty(out));
         } catch (e) { log('error', e && e.message ? e.message : String(e)); }
       });
     } catch (e) {
