@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebMCP: web pages as tools for agents</title>
+  <meta name="description" content="An unofficial guide to WebMCP, the W3C Web Machine Learning Community Group proposal that lets a web page expose its functions as tools to AI agents in the browser.">
+  <meta name="keywords" content="WebMCP, Model Context Protocol, document.modelContext, W3C, browser agents, web tools">
+  <link rel="canonical" href="https://webmcp.org/">
+  <meta property="og:title" content="WebMCP: web pages as tools for agents">
+  <meta property="og:description" content="What WebMCP is, where it is implemented, and what is being built around it. An unofficial guide.">
+  <meta property="og:url" content="https://webmcp.org/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f766e'/%3E%3Ctext x='32' y='42' font-family='ui-monospace,monospace' font-size='26' font-weight='700' fill='%23fff' text-anchor='middle'%3E{}%3C/text%3E%3C/svg%3E">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "WebMCP",
+    "url": "https://webmcp.org/",
+    "description": "Unofficial information page about WebMCP, the Web Machine Learning Community Group proposal for exposing web page functionality as tools to AI agents.",
+    "about": {
+      "@type": "Thing",
+      "name": "WebMCP",
+      "url": "https://webmachinelearning.github.io/webmcp/"
+    }
+  }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          colors: {
+            ink: '#1c2b2a',
+            teal: { DEFAULT: '#0f766e', deep: '#134e4a', soft: '#ccfbf1' },
+            amber: { DEFAULT: '#d97706', soft: '#fef3c7' },
+            paper: '#f6f5f0'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { tab-size: 2; }
+    .status-dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 9999px; margin-right: .4rem; vertical-align: middle; }
+  </style>
+</head>
+<body class="bg-paper text-ink dark:bg-slate-950 dark:text-slate-100 leading-relaxed">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-teal focus:text-white focus:px-4 focus:py-2 focus:rounded">Skip to content</a>
+
+  <div class="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8">
+
+    <!-- Disclaimer -->
+    <p class="text-sm md:text-base bg-teal-soft/70 dark:bg-teal-deep/40 border-l-4 border-teal rounded-r-lg px-4 py-3 mb-6">
+      <strong>Unofficial.</strong> This page is a community guide to WebMCP, a draft of the
+      <a class="underline decoration-teal hover:text-teal" href="https://www.w3.org/groups/cg/webmachinelearning/">W3C Web Machine Learning Community Group</a>.
+      It is not a W3C Standard and it is still changing. The source of truth is the
+      <a class="underline decoration-teal hover:text-teal" href="https://webmachinelearning.github.io/webmcp/">specification</a> and the
+      <a class="underline decoration-teal hover:text-teal" href="https://github.com/webmachinelearning/webmcp">explainer repository</a>.
+    </p>
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <a href="/" class="flex items-center gap-3 no-underline">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-teal text-white font-mono font-bold text-xl">{}</span>
+        <span class="text-2xl font-bold tracking-tight">webmcp.org</span>
+      </a>
+      <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm md:text-base font-medium">
+        <a class="hover:text-teal" href="#what">What it is</a>
+        <a class="hover:text-teal" href="#how">How it works</a>
+        <a class="hover:text-teal" href="#status">Status</a>
+        <a class="hover:text-teal" href="#ecosystem">Ecosystem</a>
+        <a class="hover:text-teal" href="#npm">npm</a>
+        <a class="hover:text-teal" href="https://github.com/webmcp">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+
+      <!-- Hero -->
+      <section class="bg-gradient-to-br from-teal-deep to-teal text-white rounded-2xl p-6 md:p-10 mb-10 shadow-lg">
+        <p class="inline-block bg-black/20 rounded-full px-3 py-1 text-xs md:text-sm mb-4">W3C Community Group draft · origin trials in Chrome and Edge</p>
+        <h1 class="text-3xl md:text-5xl font-bold leading-tight mb-4" style="text-wrap: balance">Let a web page tell an agent what it can do.</h1>
+        <p class="text-lg md:text-xl max-w-3xl mb-6 text-teal-soft">
+          WebMCP is a browser API. A page registers its own functions as tools, each with a name, a description and a schema.
+          An agent in the browser calls those tools instead of guessing its way through the page's buttons and forms.
+          The user stays on the page, logged in, watching it happen.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="https://webmachinelearning.github.io/webmcp/" class="bg-amber text-ink font-bold py-3 px-6 rounded-full shadow hover:shadow-lg hover:-translate-y-0.5 transition">Read the spec</a>
+          <a href="https://github.com/webmachinelearning/webmcp" class="bg-white/15 font-bold py-3 px-6 rounded-full hover:bg-white/25 transition">Explainer on GitHub</a>
+          <a href="https://www.w3.org/groups/cg/webmachinelearning/" class="bg-white/15 font-bold py-3 px-6 rounded-full hover:bg-white/25 transition">Join the group</a>
+        </div>
+      </section>
+
+      <!-- What it is -->
+      <section id="what" class="mb-12">
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">What it is</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+            <h3 class="font-bold text-lg mb-2">The problem</h3>
+            <p>Agents that act on the web today either scrape the user interface, which is slow and fragile, or talk to a separate backend through the
+              <a class="underline decoration-teal hover:text-teal" href="https://modelcontextprotocol.io/">Model Context Protocol</a> or OpenAPI, which bypasses the page and makes the developer duplicate the user's state and login on a server.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+            <h3 class="font-bold text-lg mb-2">The idea</h3>
+            <p>Put the tools in the page. The page's own JavaScript registers tools through <code class="text-teal">document.modelContext</code>. A built-in browser agent, an extension or a trusted iframe discovers them and calls them. Page UI, agent and user share one context.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200/60 dark:border-slate-800">
+            <h3 class="font-bold text-lg mb-2">The shape</h3>
+            <p>A tool is a function with a natural-language description and a JSON Schema for its input, the same shape MCP tools use. A declarative form-based variant is being explored alongside, but the imperative API is what the specification defines today.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section id="how" class="mb-12">
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">How it works</h2>
+        <div class="grid lg:grid-cols-2 gap-6 items-start">
+          <div>
+            <ol class="space-y-3 list-none">
+              <li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-teal text-white text-sm font-bold flex items-center justify-center">1</span><div><strong>Register.</strong> The page calls <code>registerTool()</code> with a name, description, input schema and an <code>execute</code> callback. An <code>AbortSignal</code> unregisters it later.</div></li>
+              <li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-teal text-white text-sm font-bold flex items-center justify-center">2</span><div><strong>Discover.</strong> An agent connected to the page asks the browser for the current list of tools and their schemas.</div></li>
+              <li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-teal text-white text-sm font-bold flex items-center justify-center">3</span><div><strong>Invoke.</strong> The agent requests a call with structured arguments that match the schema.</div></li>
+              <li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-teal text-white text-sm font-bold flex items-center justify-center">4</span><div><strong>Execute.</strong> The browser mediates the call and runs the page's callback in the page's own context, with the user's session and state.</div></li>
+              <li class="flex gap-3"><span class="shrink-0 w-7 h-7 rounded-full bg-teal text-white text-sm font-bold flex items-center justify-center">5</span><div><strong>Respond.</strong> The callback returns structured content to the agent, which carries on with the user.</div></li>
+            </ol>
+            <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
+              Sites can switch the feature off with <code>Permissions-Policy: tools=()</code>. Tools in cross-origin iframes are only visible where <code>exposedTo</code> allows.
+              See the spec's <a class="underline decoration-teal hover:text-teal" href="https://webmachinelearning.github.io/webmcp/#security-privacy">security and privacy considerations</a>.
+            </p>
+          </div>
+          <figure class="bg-slate-900 text-slate-100 rounded-xl p-4 md:p-5 overflow-x-auto text-sm shadow">
+            <figcaption class="text-slate-400 text-xs mb-2">Registering one tool, after the explainer</figcaption>
+<pre><code>const controller = new AbortController();
+
+await document.modelContext.registerTool({
+  name: "add-todo",
+  description: "Add an item to the user's todo list",
+  inputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string", description: "The todo text" }
+    },
+    required: ["text"]
+  },
+  async execute({ text }) {
+    await addTodo(text);          // the page's own logic
+    return { content: [{ type: "text", text: `Added "${text}"` }] };
+  }
+}, { signal: controller.signal });
+
+// later: controller.abort() removes the tool</code></pre>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Status -->
+      <section id="status" class="mb-12">
+        <h2 class="text-2xl md:text-3xl font-bold mb-2">Where it runs</h2>
+        <p class="mb-4 text-slate-600 dark:text-slate-400">From the group's <a class="underline decoration-teal hover:text-teal" href="https://github.com/webmachinelearning/webmcp/blob/main/implementation-status.md">implementation status</a> page, checked 5 November 2026. Local development in Chrome needs the <code>enable-webmcp-testing</code> flag.</p>
+        <div class="overflow-x-auto bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <table class="w-full text-sm md:text-base">
+            <thead class="text-left bg-slate-100 dark:bg-slate-800">
+              <tr><th class="px-4 py-2">Browser or agent</th><th class="px-4 py-2">State</th><th class="px-4 py-2">Where to look</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200/60 dark:divide-slate-800">
+              <tr><td class="px-4 py-2 font-medium">Chrome</td><td class="px-4 py-2"><span class="status-dot bg-green-500"></span>Origin trial, Chrome 149</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://developer.chrome.com/blog/ai-webmcp-origin-trial">announcement</a> · <a class="underline decoration-teal hover:text-teal" href="https://chromestatus.com/feature/5117755740913664">Chrome Status</a> · <a class="underline decoration-teal hover:text-teal" href="https://developer.chrome.com/docs/ai/webmcp">docs</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">Edge</td><td class="px-4 py-2"><span class="status-dot bg-green-500"></span>Origin trial, Edge 150</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://developer.microsoft.com/en-us/microsoft-edge/origin-trials/trials/0b76fe60-b266-458e-a285-04e375c0c31a">origin trial</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">Brave</td><td class="px-4 py-2"><span class="status-dot bg-amber"></span>Experimental, in Leo</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://github.com/brave/brave-browser/issues/55232">issue 55232</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">ChatGPT Desktop</td><td class="px-4 py-2"><span class="status-dot bg-green-500"></span>Supported</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://chatgpt.com/download/">download</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">Meta Ray-Ban Display</td><td class="px-4 py-2"><span class="status-dot bg-amber"></span>Coming, off by default</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://wearables.developer.meta.com/docs/develop/webapps/agent-tools">web apps docs</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">Firefox</td><td class="px-4 py-2"><span class="status-dot bg-slate-400"></span>Position under discussion</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://github.com/mozilla/standards-positions/issues/1412">standards-positions</a> · <a class="underline decoration-teal hover:text-teal" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2018306">bug</a></td></tr>
+              <tr><td class="px-4 py-2 font-medium">Safari</td><td class="px-4 py-2"><span class="status-dot bg-slate-400"></span>Position under discussion</td><td class="px-4 py-2"><a class="underline decoration-teal hover:text-teal" href="https://github.com/WebKit/standards-positions/issues/670">standards-positions</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">Everywhere else, the <a class="underline decoration-teal hover:text-teal" href="https://github.com/webmachinelearning/webmcp-polyfill">official polyfill</a> provides <code>document.modelContext</code> in secure contexts.</p>
+      </section>
+
+      <!-- Ecosystem -->
+      <section id="ecosystem" class="mb-12">
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">Ecosystem</h2>
+        <h3 class="font-bold text-lg mb-2 text-teal">Standard and reference</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <a href="https://webmachinelearning.github.io/webmcp/" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Specification</strong><p class="text-sm mt-1">The Community Group draft that defines <code>document.modelContext</code>.</p></a>
+          <a href="https://github.com/webmachinelearning/webmcp" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Explainer</strong><p class="text-sm mt-1">Motivation, examples, best practices, and the issue tracker where the design is argued out.</p></a>
+          <a href="https://github.com/webmachinelearning/webmcp-polyfill" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>@w3c/webmcp-polyfill</strong><p class="text-sm mt-1">Official polyfill from the W3C Open Source Program, no runtime dependencies.</p></a>
+          <a href="https://www.npmjs.com/package/webmcp-types" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>webmcp-types</strong><p class="text-sm mt-1">TypeScript definitions for the API.</p></a>
+          <a href="https://github.com/webmachinelearning/awesome-webmcp" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Awesome WebMCP</strong><p class="text-sm mt-1">The group's curated list: articles, demos, frameworks, tools, videos.</p></a>
+          <a href="https://developer.chrome.com/docs/ai/webmcp/best-practices" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Best practices</strong><p class="text-sm mt-1">Chrome's guidance on designing tools, and a companion on <a class="underline" href="https://developer.chrome.com/docs/ai/webmcp/secure-tools">security-minded tools</a>.</p></a>
+        </div>
+
+        <h3 class="font-bold text-lg mb-2 text-teal">Tools and demos</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <a href="https://github.com/GoogleChromeLabs/webmcp-tools" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>webmcp-tools</strong><p class="text-sm mt-1">Chrome Labs: an evals CLI, agent skills, and twenty-odd demo sites from a pizza maker to a spreadsheet.</p></a>
+          <a href="https://github.com/beaufortfrancois/model-context-tool-inspector" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Model Context Tool Inspector</strong><p class="text-sm mt-1">Chrome extension to see which tools a page exposes and debug their schemas.</p></a>
+          <a href="https://github.com/webmachinelearning/webmcp/blob/main/implementation-status.md" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Implementation status</strong><p class="text-sm mt-1">The group's live table of browser and agent support.</p></a>
+        </div>
+
+        <h3 class="font-bold text-lg mb-2 text-teal">Related projects</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <a href="https://jss.live/docs/features/mcp" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>JavaScript Solid Server</strong><p class="text-sm mt-1">A personal data pod exposed as an MCP tool surface, the server-side cousin of what WebMCP does in the page.</p></a>
+          <a href="https://pypi.org/project/ais-webmcp/" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>ais-webmcp</strong><p class="text-sm mt-1">Alpin Insight Solutions, Berlin: create and validate WebMCP manifests for a site, Apache-2.0.</p></a>
+          <a href="https://github.com/MiguelsPizza/WebMCP" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>MCP-B</strong><p class="text-sm mt-1">An early implementation whose ideas fed the standard; the open source history lives here.</p></a>
+          <a href="https://github.com/jasonjmcghee/WebMCP" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>The original proposal</strong><p class="text-sm mt-1">Jason McGhee's early WebMCP proposal and implementation, before the work moved to the W3C group.</p></a>
+          <a href="https://modelcontextprotocol.io/" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Model Context Protocol</strong><p class="text-sm mt-1">The backend tool protocol whose tool shape WebMCP borrows.</p></a>
+          <a href="https://github.com/webmachinelearning/awesome-webmcp" class="block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200/60 dark:border-slate-800 hover:border-teal transition"><strong>Building something?</strong><p class="text-sm mt-1">Add it to the group's awesome list, or <a class="underline" href="https://github.com/webmcp/webmcp.github.io/issues">open an issue here</a> to be listed on this page.</p></a>
+        </div>
+      </section>
+
+      <!-- npm -->
+      <section id="npm" class="mb-12">
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">The <code>webmcp</code> package on npm</h2>
+        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="mb-3">
+            <a class="underline decoration-teal hover:text-teal" href="https://www.npmjs.com/package/webmcp">webmcp</a> on npm has been held since February 2025 and is being developed into a small JavaScript library,
+            with its source at <a class="underline decoration-teal hover:text-teal" href="https://github.com/webmcp/webmcp">github.com/webmcp/webmcp</a>.
+            It sits beside the official polyfill rather than replacing it.
+          </p>
+          <ul class="list-disc pl-5 space-y-1 mb-3">
+            <li><strong>0.0.1</strong>, published 2 February 2025: name reserved.</li>
+            <li><strong>0.0.2</strong>, next: a sensible first release with a repository link, a README, and a helper over <code>document.modelContext</code>, plus a live demo page on this site.</li>
+          </ul>
+          <p class="text-sm text-slate-600 dark:text-slate-400">Ideas on direction are welcome by issue on the repository.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="border-t border-slate-200/60 dark:border-slate-800 pt-6 mt-10 text-sm text-slate-600 dark:text-slate-400">
+      <p class="mb-1">Maintained by <a class="underline decoration-teal hover:text-teal" href="https://melvincarvalho.com">Melvin Carvalho</a>, a member of the Web Machine Learning Community Group. Not affiliated with the W3C, Google or Microsoft.</p>
+      <p>Source: <a class="underline decoration-teal hover:text-teal" href="https://github.com/webmcp/webmcp.github.io">webmcp/webmcp.github.io</a>. Page text is CC BY 4.0. Code samples follow the explainer and are shared under its terms.</p>
+    </footer>
+  </div>
+</body>
+</html>
